@@ -5,6 +5,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.views.decorators.csrf import csrf_exempt
 from .models import CarMake, CarModel
 from .populate import initiate
+from .restapis import get_request, analyze_review_sentiments, post_review
 import json
 import logging
 
@@ -134,3 +135,68 @@ def get_cars(request):
         })
 
     return JsonResponse({"CarModels": cars})
+
+
+# Update the `get_dealerships` render list of dealerships all by default,
+# particular state if state is passed
+def get_dealerships(request, state="All"):
+
+    if(state == "All"):
+        endpoint = "/fetchDealers"
+    else:
+        endpoint = "/fetchDealers/" + state
+
+    dealerships = get_request(endpoint)
+
+    return JsonResponse({"status": 200, "dealers": dealerships})
+
+
+def get_dealer_details(request, dealer_id):
+
+    endpoint = "/fetchDealer/" + str(dealer_id)
+
+    dealer_details = get_request(endpoint)
+
+    return JsonResponse({"status": 200, "dealer": dealer_details})
+
+
+def get_dealer_reviews(request, dealer_id):
+
+    endpoint = "/fetchReviews/dealer/" + str(dealer_id)
+
+    reviews = get_request(endpoint)
+
+    for review_detail in reviews:
+
+        response = analyze_review_sentiments(
+            review_detail["review"]
+        )
+
+        if response:
+            review_detail["sentiment"] = response["sentiment"]
+
+    return JsonResponse({"status": 200, "reviews": reviews})
+
+@csrf_exempt
+def add_review(request):
+
+    if request.method == "POST":
+
+        data = json.loads(request.body)
+
+        review = {
+            "name": data["name"],
+            "dealership": data["dealership"],
+            "review": data["review"],
+            "purchase": data["purchase"],
+            "purchase_date": data["purchase_date"],
+            "car_make": data["car_make"],
+            "car_model": data["car_model"],
+            "car_year": data["car_year"],
+        }
+
+        response = post_review(review)
+
+        return JsonResponse(response)
+
+    return JsonResponse({"status": 400, "message": "Bad Request"})

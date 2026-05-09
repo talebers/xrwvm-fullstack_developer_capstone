@@ -186,17 +186,24 @@ def add_review(request):
 
         review = {
             "name": data["name"],
-            "dealership": data["dealership"],
+            "dealership": int(data["dealership"]),
             "review": data["review"],
             "purchase": data["purchase"],
             "purchase_date": data["purchase_date"],
             "car_make": data["car_make"],
             "car_model": data["car_model"],
-            "car_year": data["car_year"],
+            "car_year": int(data["car_year"]),
         }
 
         response = post_review(review)
 
-        return JsonResponse(response)
+        return JsonResponse({
+            "status": 200,
+            "response": response
+        })
 
-    return JsonResponse({"status": 400, "message": "Bad Request"})
+    return JsonResponse({
+        "status": 400,
+        "message": "Bad Request"
+    })
+    
